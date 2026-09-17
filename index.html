@@ -70,6 +70,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
       <div class="optionsList">
         <div class="optionRow"><div><span>Sound</span><small>Arcade effects and feedback</small></div><button class="toggle on" id="soundToggle" aria-label="Toggle sound"><i></i></button></div>
         <div class="optionRow"><div><span>Haptics</span><small>Tap, food, level and crash vibration</small></div><button class="toggle on" id="vibeToggle" aria-label="Toggle haptics"><i></i></button></div>
+        <div class="optionRow"><div><span>Fullscreen</span><small>Expand the game to fill the screen</small></div><button class="toggle" id="fullscreenToggle" aria-label="Toggle fullscreen"><i></i></button></div>
       </div>
       <button class="primary" id="optionsBack">DONE</button>
     </div>
@@ -261,10 +262,25 @@ $('pause').addEventListener('click',togglePause);$('resume').addEventListener('c
 function syncToggles(){$('soundToggle').classList.toggle('on',soundOn);$('vibeToggle').classList.toggle('on',vibeOn)}
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;$('sound').textContent=soundOn?'🔊':'🔇';$('sound').classList.toggle('on',soundOn);syncToggles();save();if(soundOn)beep(520,.05)});$('vibe').addEventListener('click',()=>{vibeOn=!vibeOn;$('vibe').textContent=vibeOn?'📳':'📴';$('vibe').classList.toggle('on',vibeOn);syncToggles();save();if(vibeOn)buzz(12)});
 $('soundToggle').addEventListener('click',()=>{$('sound').click()});$('vibeToggle').addEventListener('click',()=>{$('vibe').click()});
+async function setFullscreen(){
+  try{
+    if(document.fullscreenElement){await document.exitFullscreen();}
+    else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}
+    else { toast('Fullscreen is not supported here'); }
+  }catch(e){ toast('Fullscreen was blocked by the browser'); }
+  syncFullscreen();
+}
+function syncFullscreen(){
+  const on=!!document.fullscreenElement;
+  const b=$('fullscreenToggle');
+  if(b){b.classList.toggle('on',on);b.setAttribute('aria-label',on?'Exit fullscreen':'Enter fullscreen');}
+}
+$('fullscreenToggle').addEventListener('click',setFullscreen);
+document.addEventListener('fullscreenchange',syncFullscreen);
 const joystick=$('joystick'),joystickKnob=$('joystickKnob');let joyPointer=null;function resetJoystick(){joystick.classList.remove('active');joystickKnob.style.transform='translate(-50%,-50%)'}function joyDirection(dx,dy){const ax=Math.abs(dx),ay=Math.abs(dy);if(Math.max(ax,ay)<12)return;if(ax>ay)setDirection(dx>0?1:-1,0);else setDirection(0,dy>0?1:-1)}joystick.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);joystick.classList.add('active');const r=joystick.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.23;const len=Math.hypot(dx,dy)||1;const k=Math.min(1,max/len);dx*=k;dy*=k;joystickKnob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;joyDirection(dx,dy);buzz(8)});joystick.addEventListener('pointermove',e=>{if(joyPointer!==e.pointerId)return;const r=joystick.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.23;const len=Math.hypot(dx,dy)||1;const k=Math.min(1,max/len);dx*=k;dy*=k;joystickKnob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;joyDirection(dx,dy)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,()=>{joyPointer=null;resetJoystick()}));
 document.querySelectorAll('.dbtn').forEach(btn=>{const [x,y]=DIRS[btn.dataset.dir];const press=e=>{e.preventDefault();btn.classList.add('pressed');setDirection(x,y);setTimeout(()=>btn.classList.remove('pressed'),80)};btn.addEventListener('pointerdown',press);btn.addEventListener('pointerup',()=>btn.classList.remove('pressed'));btn.addEventListener('pointercancel',()=>btn.classList.remove('pressed'))});
 window.addEventListener('keydown',e=>{const map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'};if(map[e.key]){e.preventDefault();const [x,y]=DIRS[map[e.key]];setDirection(x,y)}if(e.key===' '){e.preventDefault();togglePause()}});
-$('sound').textContent=soundOn?'🔊':'🔇';$('vibe').textContent=vibeOn?'📳':'📴';$('sound').classList.toggle('on',soundOn);$('vibe').classList.toggle('on',vibeOn);syncToggles();setDifficulty('medium');updateUI();resize();draw();
+$('sound').textContent=soundOn?'🔊':'🔇';$('vibe').textContent=vibeOn?'📳':'📴';$('sound').classList.toggle('on',soundOn);$('vibe').classList.toggle('on',vibeOn);syncToggles();syncFullscreen();setDifficulty('medium');updateUI();resize();draw();
 })();
 </script>
 </body>
